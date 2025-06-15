@@ -66,7 +66,73 @@ function var2html(prefix, v)
         var items = v[index];
     
         for (item_index in items)
-            $("#" + prefix + "_" + index + "_" + item_index).html(items[item_index]);
+        {
+            const elementId = "#" + prefix + "_" + index + "_" + item_index;
+            const element = $(elementId);
+            const value = items[item_index];
+            
+            element.html(value);
+            
+            // Apply color coding for signal strength values
+            let signalType = "";
+            if (item_index.includes('rsrp')) {
+                signalType = 'rsrp';
+            } else if (item_index.includes('rsrq')) {
+                signalType = 'rsrq';
+            } else if (item_index.includes('sinr') || item_index.includes('snr')) {
+                signalType = 'sinr';
+            }
+            
+            if (signalType) {
+                // Remove any existing signal quality classes
+                element.removeClass('signal-excellent signal-good signal-fair signal-poor signal-bad signal-worst');
+                
+                // Add appropriate class based on signal quality
+                const qualityClass = getSignalQualityClass(value, signalType);
+                if (qualityClass) {
+                    element.addClass(qualityClass);
+                }
+            }
+        }
+    }
+}
+
+function getSignalQualityClass(value, type) {
+    if (value === "" || value === "?????" || isNaN(parseFloat(value))) {
+        return "";
+    }
+    
+    const numValue = parseFloat(value);
+    
+    switch(type) {
+        case 'rsrp':
+            if (numValue >= -70) return 'signal-excellent';
+            if (numValue >= -85) return 'signal-good';
+            if (numValue >= -95) return 'signal-fair';
+            if (numValue >= -105) return 'signal-poor';
+            if (numValue >= -115) return 'signal-bad';
+            return 'signal-worst';
+            
+        case 'rsrq':
+            if (numValue >= -4) return 'signal-excellent';
+            if (numValue >= -7) return 'signal-good';
+            if (numValue >= -12) return 'signal-fair';
+            if (numValue >= -15) return 'signal-poor';
+            if (numValue >= -20) return 'signal-bad';
+            return 'signal-worst';
+            
+        case 'sinr':
+        case 'snr':
+            if (numValue >= 30) return 'signal-excellent';
+            if (numValue >= 25) return 'signal-good';
+            if (numValue >= 20) return 'signal-fair';
+            if (numValue >= 15) return 'signal-poor';
+            if (numValue >= 5) return 'signal-bad';
+            if (numValue >= 0) return 'signal-bad';
+            return 'signal-worst';
+            
+        default:
+            return "";
     }
 }
 
@@ -851,6 +917,25 @@ function get_status()
                 v = (!isNaN(v[0]) ? "_" : "" ) + v;
                 $("#" + v).html(window[v]);
             }
+
+            // Apply color coding to direct signal updates
+            $('#lte_rsrq, #lte_rsrp, #lte_snr, #Z5g_rsrp, #Z5g_rsrq, #Z5g_SINR').each(function() {
+                const element = $(this);
+                const value = element.text();
+                let signalType = "";
+    
+                if (this.id.includes('rsrp')) signalType = 'rsrp';
+                else if (this.id.includes('rsrq')) signalType = 'rsrq';
+                else if (this.id.includes('snr') || this.id.includes('SINR')) signalType = 'sinr';
+    
+                if (signalType) {
+                    element.removeClass('signal-excellent signal-good signal-fair signal-poor signal-bad signal-worst');
+                   const qualityClass = getSignalQualityClass(value, signalType);
+                    if (qualityClass) {
+                        element.addClass(qualityClass);
+                    }
+                }
+            });
         }
     })
 }
@@ -1302,6 +1387,14 @@ function inject_html()
     $("#mainContainer").prepend(`
     <style>
         
+    /* Signal quality color classes */
+    .signal-excellent { background-color: #1D3F08 !important; color: white !important; }
+    .signal-good { background-color: #629740 !important; color: black !important; }
+    .signal-fair { background-color: #fce538 !important; color: black !important; }
+    .signal-poor { background-color: #ffa136 !important; color: black !important; }
+    .signal-bad { background-color: #ca5100 !important; color: white !important; }
+    .signal-worst { background-color: #800000 !important; color: white !important; }
+
     .clear {
         clear: both;
     }
